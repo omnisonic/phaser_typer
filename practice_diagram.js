@@ -146,7 +146,7 @@ let errorShakeTimer = null; // For error feedback
 
 
 function preload() {
-    this.load.image('background', 'bg.png');
+    this.load.image('background', 'bg.webp');
     // this.load.audio('myAudio', 'soundtrack.mp3');
 }
 
