@@ -1,5 +1,8 @@
     const keyToFingerMapping = {
         ' ': 'right thumb',
+        'shiftleft': 'left hand pinky',
+        'shiftright': 'right hand pinky',
+        'enter': 'right hand pinky',
         '1': 'left hand pinky',
         '2': 'left hand ring finger',
         '3': 'left hand middle finger',
@@ -118,15 +121,17 @@ let game = new Phaser.Game(config);
 const regularLayout = [
     '` 1 2 3 4 5 6 7 8 9 0 - =',
     'q w e r t y u i o p [ ] \\',
-    'a s d f g h j k l ; \'',
-    'z x c v b n m , . /'
+    'a s d f g h j k l ; \' Enter',
+    'Shift z x c v b n m , . / Shift',
+    'Space'
 ];
 
 const shiftLayout = [
     '~ ! @ # $ % ^ & * ( ) _ +',
     'Q W E R T Y U I O P { } |',
-    'A S D F G H J K L : "',
-    'Z X C V B N M < > ?'
+    'A S D F G H J K L : " Enter',
+    'Shift Z X C V B N M < > ? Shift',
+    'Space'
 ];
 
 let keysPressed = {};
@@ -345,21 +350,46 @@ function drawKeyboard(layout, scene) {
     targetKeyHighlight = null; // Reset target highlight since all key objects are destroyed
 
     const scale = Math.min(scene.scale.width / 1200, 1.5);
-    const keySize = 50 * scale;
-    const startX = (scene.scale.width - (15 * keySize)) / 2;
+    const baseKeyWidth = 50 * scale;
+    const keySpacing = 8 * scale; // Space between keys
+    
+    // Calculate the total width of each row to find the widest
+    let maxRowWidth = 0;
+    const rowWidths = [];
+    
+    layout.forEach((row) => {
+        const keys = row.split(' ');
+        let rowWidth = 0;
+        keys.forEach((key, index) => {
+            // Wider keys for special keys
+            const keyWidth = (key === 'Shift' || key === 'Enter' || key === 'Space') ? baseKeyWidth * 2.5 : baseKeyWidth;
+            rowWidth += keyWidth;
+            if (index < keys.length - 1) {
+                rowWidth += keySpacing;
+            }
+        });
+        rowWidths.push(rowWidth);
+        if (rowWidth > maxRowWidth) {
+            maxRowWidth = rowWidth;
+        }
+    });
+    
     let yPos = scene.scale.height - 280;
 
-    layout.forEach((row) => {
-        let xPos = startX;
+    layout.forEach((row, rowIndex) => {
+        const keys = row.split(' ');
+        // Center each row based on its width relative to the widest row
+        let xPos = (scene.scale.width - rowWidths[rowIndex]) / 2;
 
-        row.split(' ').forEach((key) => {
-            const keyText = scene.add.text(xPos, yPos, key, { font: `${Math.floor(28 * scale)}px Arial`, fill: '#ffffff' });
+        keys.forEach((key) => {
+            const keyWidth = (key === 'Shift' || key === 'Enter' || key === 'Space') ? baseKeyWidth * 2.5 : baseKeyWidth;
+            const keyText = scene.add.text(xPos, yPos, key, { font: `${Math.floor(24 * scale)}px Arial`, fill: '#ffffff' });
             scene.keysText[key] = keyText;
             currentLayoutTextObjects.push(keyText);
-            xPos += keySize;
+            xPos += keyWidth + keySpacing;
         });
 
-        yPos += keySize + 10;
+        yPos += baseKeyWidth + 10;
     });
 
     updateKeyVisuals();
@@ -378,12 +408,19 @@ function updateKeyVisuals() {
 function highlightKey(key, scene, isKeyDown) {
     let fingerKey = key.toLowerCase(); // Ensure we're using the lowercase key for finger mapping
 
-    if (!scene.keysText[key] || !keyToFingerMapping[fingerKey]) {
+    // Handle special keys that might not be in keysText directly
+    if (!scene.keysText[key]) {
+        return;
+    }
+    
+    // Check if we have a mapping for this key (including special keys)
+    if (!keyToFingerMapping[fingerKey] && !keyToFingerMapping[key]) {
         return;
     }
 
     if (isKeyDown) {
-        console.log("Key:", key, "Finger:", keyToFingerMapping[fingerKey]);
+        const finger = keyToFingerMapping[fingerKey] || keyToFingerMapping[key];
+        console.log("Key:", key, "Finger:", finger);
         scene.keysText[key].setStyle({ fill: '#ff0000' });
     }
 }
@@ -404,6 +441,8 @@ function getRepresentativeCharacter(event) {
         return event.key.toLowerCase();
     } else if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
         return event.code;  // Return the code for shift keys
+    } else if (event.code === 'Enter') {
+        return 'Enter';  // Return 'Enter' for the Enter key
     }
     return '';
 }
