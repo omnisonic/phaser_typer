@@ -2,7 +2,7 @@
 
 > **Learn to type by typing real code.** A browser-based touch typing trainer built with Phaser.js that helps you master the keyboard while reading actual JavaScript.
 
-![Typing Game Screenshot](bg.png)
+![Typing Game Screenshot](images/phastertyper.webp.png)
 
 ## 🎯 Why This Project?
 
