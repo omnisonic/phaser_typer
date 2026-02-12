@@ -1,4 +1,5 @@
     const keyToFingerMapping = {
+        ' ': 'right thumb',
         '1': 'left hand pinky',
         '2': 'left hand ring finger',
         '3': 'left hand middle finger',
@@ -166,14 +167,6 @@ function create() {
         }
     });
 
-    document.getElementById('goFullScreen').addEventListener('click', () => {
-        if (this.scale.isFullscreen) {
-            this.scale.stopFullscreen();
-        } else {
-            this.scale.startFullscreen();
-        }
-    });
-
     // music = this.sound.add('myAudio', { loop: true });
 
     // Event listener for the external button
@@ -283,7 +276,7 @@ function create() {
 
     drawKeyboard(regularLayout, this);
 
-    this.fingerText = this.add.text(this.scale.width / 2, 220, '', { font: 'bold 36px Arial', fill: '#00ff00' }).setOrigin(0.5);
+    this.fingerText = this.add.text(this.scale.width / 2, 380, '', { font: 'bold 36px Arial', fill: '#00ff00' }).setOrigin(0.5);
     this.errorText = this.add.text(this.scale.width / 2, 80, '', { font: 'bold 72px Arial', fill: '#ff0000' }).setOrigin(0.5);
 
     this.input.keyboard.on('keydown', (event) => {
@@ -295,6 +288,7 @@ function create() {
         if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
             isShiftDown = true;
             drawKeyboard(shiftLayout, this);
+            updateTargetKey(this);  // Re-highlight the target key in the new layout
         } else {
             highlightKey(key, this, true);
             keysPressed[key] = true;
@@ -312,6 +306,7 @@ function create() {
         if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
             isShiftDown = false;
             drawKeyboard(regularLayout, this);
+            updateTargetKey(this);  // Re-highlight the target key in the new layout
         } else {
             highlightKey(key, this, false);
             keysPressed[key] = false;
@@ -329,13 +324,25 @@ function update() {
     } else {
         cursor.setVisible(false); // Hide the cursor
     }
-    // The logic is handled within the event callbacks in create, so no need to continuously update anything else here.
+    
+    // Update cursor position every frame to keep it aligned with the current letter
+    updateCursorPosition(this);
+}
+
+function updateCursorPosition(scene) {
+    if (cursor && scene.wordText) {
+        // Position cursor at the left edge of the text (where the current letter is)
+        cursor.x = scene.wordText.x - scene.wordText.width / 2;
+        cursor.y = scene.wordText.y;
+    }
 }
 
 
 function drawKeyboard(layout, scene) {
     currentLayoutTextObjects.forEach(textObject => textObject.destroy());
     currentLayoutTextObjects = [];
+    scene.keysText = {}; // Clear keysText to remove references to destroyed objects
+    targetKeyHighlight = null; // Reset target highlight since all key objects are destroyed
 
     const scale = Math.min(scene.scale.width / 1200, 1.5);
     const keySize = 50 * scale;
@@ -402,8 +409,8 @@ function getRepresentativeCharacter(event) {
 }
 
 function updateTargetKey(scene) {
-    // Clear previous highlight
-    if (targetKeyHighlight && targetKeyHighlight.keyText) {
+    // Clear previous highlight - only if the object is still valid/active
+    if (targetKeyHighlight && targetKeyHighlight.keyText && targetKeyHighlight.keyText.active) {
         targetKeyHighlight.keyText.setStyle({ fill: '#ffffff' });
     }
     
@@ -415,18 +422,16 @@ function updateTargetKey(scene) {
     const nextChar = scene.currentWord[0];
     const keyObj = scene.keysText[nextChar];
     
-    if (keyObj) {
-        // Highlight the target key in green
+    // Always highlight the key on the keyboard if it's visible and active
+    if (keyObj && keyObj.active) {
         keyObj.setStyle({ fill: '#00ff00' });
         targetKeyHighlight = { keyText: keyObj, char: nextChar };
-        
-        // Show which finger to use
-        const finger = keyToFingerMapping[nextChar.toLowerCase()];
-        if (finger) {
-            scene.fingerText.setText('Next: ' + finger);
-        }
-    } else if (nextChar === ' ') {
-        scene.fingerText.setText('Next: SPACE (thumb)');
+    }
+    
+    // Always show finger guidance based on keyToFingerMapping, regardless of whether key is visible
+    const finger = keyToFingerMapping[nextChar.toLowerCase()];
+    if (finger) {
+        scene.fingerText.setText('Next: ' + finger);
     } else {
         scene.fingerText.setText('');
     }

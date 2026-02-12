@@ -106,6 +106,64 @@ function update() {
     }
     // The logic is handled within the event callbacks in create, so no need to continuously update anything else here.
 }
+function drawKeyboard(layout, scene) {
+    currentLayoutTextObjects.forEach(textObject => textObject.destroy());
+    currentLayoutTextObjects = [];
+
+    let yPos = 300;
+
+    layout.forEach((row) => {
+        let xPos = 50;
+
+        row.split(' ').forEach((key) => {
+            const keyText = scene.add.text(xPos, yPos, key, { font: '20px Arial', fill: '#ffffff' });
+            scene.keysText[key] = keyText;
+            currentLayoutTextObjects.push(keyText);
+            xPos += 40;
+        });
+
+        yPos += 50;
+    });
+
+    updateKeyVisuals();
+}
+
+function updateKeyVisuals() {
+    for (let textObject of currentLayoutTextObjects) {
+        if (keysPressed[textObject.text.toLowerCase()] || keysPressed[textObject.text.toUpperCase()]) {
+            textObject.setFill('#ff0000');
+        } else {
+            textObject.setFill('#ffffff');
+        }
+    }
+}
+
+function highlightKey(key, scene, isKeyDown) {
+    let fingerKey = key.toLowerCase(); // Ensure we're using the lowercase key for finger mapping
+
+    if (!scene.keysText[key] || !keyToFingerMapping[fingerKey]) {
+        return;
+    }
+
+    if (isKeyDown) {
+        console.log("Key:", key, "Finger:", keyToFingerMapping[fingerKey]);
+        scene.keysText[key].setStyle({ fill: '#ff0000' });
+        const fingerUsed = keyToFingerMapping[fingerKey] || 'unknown';
+        scene.fingerText.setText('' + fingerUsed);
+    } else {
+        scene.keysText[key].setStyle({ fill: '#ffffff' });
+        scene.fingerText.setText('');
+    }
+}
+
+function getRepresentativeCharacter(event) {
+    if (event.key.length === 1) {
+        return event.key.toLowerCase();
+    } else if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+        return event.code;  // Return the code for shift keys
+    }
+    return '';
+}
 
 // This full script sets up your Phaser game, fetches the script, and uses it as the basis for the typing game.
 // Remember to serve your HTML file through a server environment rather than opening it directly in a browser with a "file://" URL due to CORS policy.
